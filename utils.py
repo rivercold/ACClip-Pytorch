@@ -45,5 +45,6 @@ def load_dataset(batch_size=32, word_dim=300):
     '''Alternatively we can also use the default configurations'''
     # train_iter, test_iter = datasets.IMDB.iters(batch_size=32)
     vocab_size = len(TEXT.vocab)
+    class_num = len(LABEL.vocab)
 
-    return train_iter, valid_iter, test_iter, vocab_size, word_embeddings
+    return train_iter, valid_iter, test_iter, class_num, vocab_size, word_embeddings
