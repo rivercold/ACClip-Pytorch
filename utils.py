@@ -6,7 +6,7 @@ from torchtext import datasets
 from torchtext.vocab import Vectors, GloVe
 
 
-def load_dataset(batch_size=32):
+def load_dataset(batch_size=32, word_dim=300):
     """
     tokenizer : Breaks sentences into a list of words. If sequential=False, no tokenization is applied
     Field : A class that stores information about the way of preprocessing
@@ -22,11 +22,12 @@ def load_dataset(batch_size=32):
     """
 
     tokenize = lambda x: x.split()
-    TEXT = data.Field(sequential=True, tokenize=tokenize, lower=True, include_lengths=True, batch_first=True,
+    TEXT = data.Field(sequential=True, tokenize=tokenize, lower=True, include_lengths=False, batch_first=True,
                       fix_length=200)
-    LABEL = data.LabelField(tensor_type=torch.FloatTensor)
+    LABEL = data.LabelField(sequential=False)
     train_data, test_data = datasets.IMDB.splits(TEXT, LABEL)
-    TEXT.build_vocab(train_data, vectors=GloVe(name='6B', dim=300))
+    print ("after split, we start to build vocab")
+    TEXT.build_vocab(train_data, vectors=GloVe(name='6B', dim=word_dim), min_freq=10)
     LABEL.build_vocab(train_data)
 
     word_embeddings = TEXT.vocab.vectors
@@ -35,6 +36,7 @@ def load_dataset(batch_size=32):
     print ("Label Length: " + str(len(LABEL.vocab)))
 
     train_data, valid_data = train_data.split()  # Further splitting of train & validation
+    print ("train: {}; dev: {}; test: {}".format(len(train_data), len(valid_data), len(test_data)))
     train_iter, valid_iter, test_iter = data.BucketIterator.splits((train_data, valid_data, test_data),
                                                                    batch_size=batch_size,
                                                                    sort_key=lambda x: len(x.text), repeat=False,
@@ -42,5 +44,6 @@ def load_dataset(batch_size=32):
 
     '''Alternatively we can also use the default configurations'''
     # train_iter, test_iter = datasets.IMDB.iters(batch_size=32)
+    vocab_size = len(TEXT.vocab)
 
-    return train_iter, valid_iter, test_iter
+    return train_iter, valid_iter, test_iter, vocab_size, word_embeddings
