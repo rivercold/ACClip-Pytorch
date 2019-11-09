@@ -8,7 +8,7 @@ The PyTorch implementation of ICLR2020 submission: Why ADAM Beats SGD for Attent
 * torchtext >= 0.4.0
 * numpy >= 1.16.4
 * matplotlib >= 3.1.0
-* transformer >= 2.1.1
+* transformers >= 2.1.1 (pip install transformers)
 
 ## Setup
 
@@ -17,6 +17,16 @@ The PyTorch implementation of ICLR2020 submission: Why ADAM Beats SGD for Attent
 $ python run_text_classifier.py 
 ```
 
+### GLUE task
+* Donwload the datasets
+```shell script
+$ python download_glue_data.py
+```
+
+* Run Bert model, where you can specify your optimizers in ```run_glue.sh```  
+```shell script
+$ sh ./run_glue.sh
+```
 
 ## Plot for visualization
 
