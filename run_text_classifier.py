@@ -25,7 +25,9 @@ def train(model, optimizer, train_batches, eval_batches, total_epoch, model_name
         total_loss = 0.0
         for batch in train_batches:
             optimizer.zero_grad()
-            inputs, target = batch.text.cuda(), batch.label.cuda()
+            inputs, target = batch.text, batch.label
+            if torch.cuda.is_available():
+                inputs, target = inputs.cuda(), target.cuda()
             pred = model(inputs)
             loss = F.cross_entropy(pred, target)
             total_loss += loss.item()
@@ -52,8 +54,10 @@ def eval(model, eval_batches):
     model.eval()
     with torch.no_grad():
         for idx, batch in enumerate(eval_batches):
-            inputs = batch.text.cuda()
-            target = batch.label.cuda()
+            inputs = batch.text
+            target = batch.label
+            if torch.cuda.is_available():
+                inputs, target = input.cuda(), target.cuda()
             target = torch.autograd.Variable(target).long()
             prediction = model(inputs)
             loss = F.cross_entropy(prediction, target)
@@ -69,7 +73,8 @@ if __name__ == "__main__":
 
     if args.model == "lstm":
         model = LSTM_Attn(args.batch_size, class_num, args.hidden_size, vocab_size, args.emb_dim, word_embeds)
-        model.cuda()
+        if torch.cuda.is_available():
+            model.cuda()
 
     if args.optimizer == "sgd":
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
