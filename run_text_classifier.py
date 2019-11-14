@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 from utils import load_dataset
 import sys, os, pickle
+from optimizers.ACClip import ACClip
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, default='lstm', help='name of the model')
@@ -81,6 +82,8 @@ if __name__ == "__main__":
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     elif args.optimizer == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer == "acclip":
+        optimizer = ACClip(model.parameters(), lr=args.lr)
 
     model_name = "{}-{}-{}".format(args.optimizer, args.dataset, args.model)
     train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
