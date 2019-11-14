@@ -12,6 +12,7 @@ parser.add_argument('--dataset', type=str, default='imdb', help='the dataset use
 parser.add_argument('--epoch', type=int, default='20', help='The number of epochs')
 parser.add_argument('--optimizer', type=str, default='sgd', help='Type of otpimizer')
 parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--momentum', type=float, default=0.9)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--hidden_size', type=int, default=256)
 parser.add_argument('--emb_dim', type=int, default=300)
@@ -77,7 +78,7 @@ if __name__ == "__main__":
             model.cuda()
 
     if args.optimizer == "sgd":
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     elif args.optimizer == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
