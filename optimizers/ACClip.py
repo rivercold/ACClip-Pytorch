@@ -47,7 +47,6 @@ class ACClip(Optimizer):
                     # the clipping value, i.e., \tao_0^{\alpha}
                     state['clip'] = torch.zeros_like(p.data)
 
-
                 momentum, clip = state['momentum'], state['clip']
 
                 beta1, beta2 = group['betas']

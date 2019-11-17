@@ -56,6 +56,7 @@ from transformers import glue_compute_metrics as compute_metrics
 from transformers import glue_output_modes as output_modes
 from transformers import glue_processors as processors
 from transformers import glue_convert_examples_to_features as convert_examples_to_features
+from optimizers.ACClip import ACClip
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,9 @@ def train(args, train_dataset, model, tokenizer):
     elif args.optimizer.lower() == "sgd":
         print("We use SGD optimizer!")
         optimizer = SGD(optimizer_grouped_parameters, lr=args.learning_rate)
+    elif args.optimizer.lower() == "acclip":
+        print ("We use ACClip optimizer!")
+        optimizer = ACClip(optimizer_grouped_parameters, lr=args.learning_rate)
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
     if args.fp16:
         try:
@@ -187,6 +191,7 @@ def train(args, train_dataset, model, tokenizer):
                         results = evaluate(args, model, tokenizer)
                         for key, value in results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
+                            print ('eval_{}'.format(key), value, global_step)
                     tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar('loss', (tr_loss - logging_loss) / args.logging_steps, global_step)
                     logging_loss = tr_loss
