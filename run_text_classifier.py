@@ -59,7 +59,7 @@ def eval(model, eval_batches):
             inputs = batch.text
             target = batch.label
             if torch.cuda.is_available():
-                inputs, target = input.cuda(), target.cuda()
+                inputs, target = inputs.cuda(), target.cuda()
             target = torch.autograd.Variable(target).long()
             prediction = model(inputs)
             loss = F.cross_entropy(prediction, target)
@@ -71,6 +71,7 @@ def eval(model, eval_batches):
     return total_epoch_loss/len(eval_batches), total_epoch_acc/len(eval_batches)
 
 if __name__ == "__main__":
+    print ("Start loading and processing dataset")
     train_batches, dev_batches, test_batches, class_num, vocab_size, word_embeds = load_dataset(word_dim=args.emb_dim)
 
     if args.model == "lstm":
@@ -85,6 +86,7 @@ if __name__ == "__main__":
     elif args.optimizer == "acclip":
         optimizer = ACClip(model.parameters(), lr=args.lr)
 
+    print ("Start training models!")
     model_name = "{}-{}-{}".format(args.optimizer, args.dataset, args.model)
     train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
 
