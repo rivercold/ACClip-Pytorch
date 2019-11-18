@@ -14,8 +14,9 @@ The PyTorch implementation of ICLR2020 submission: Why ADAM Beats SGD for Attent
 
 ### Text Classification
 ```shell script
-$ python run_text_classifier.py 
+$ python run_text_classifier.py --optimizer=acclip --lr=0.01 --epoch=20
 ```
+optmizers chosen from "acclip; adam; sgd"  
 
 ### GLUE task
 * Donwload the datasets
