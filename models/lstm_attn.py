@@ -59,7 +59,7 @@ class LSTM_Attn(torch.nn.Module):
 
         return new_hidden_state
 
-    def forward(self, input_sentences, batch_size=None):
+    def forward(self, input_sentences):
 
         """
         Parameters
@@ -76,12 +76,13 @@ class LSTM_Attn(torch.nn.Module):
         input = self.word_embeddings(input_sentences)
         num_ins = input.size(0)
         input = input.permute(1, 0, 2)
-        h_0 = Variable(torch.zeros(1, num_ins, self.hidden_size))
-        c_0 = Variable(torch.zeros(1, num_ins, self.hidden_size))
+
         if torch.cuda.is_available():
-            h_0.cuda()
-            c_0.cuda()
-            raise
+            h_0 = Variable(torch.zeros(1, num_ins, self.hidden_size)).cuda()
+            c_0 = Variable(torch.zeros(1, num_ins, self.hidden_size)).cuda()
+        else:
+            h_0 = Variable(torch.zeros(1, num_ins, self.hidden_size))
+            c_0 = Variable(torch.zeros(1, num_ins, self.hidden_size))
 
         output, (final_hidden_state, final_cell_state) = self.lstm(input, (
         h_0, c_0))  # final_hidden_state.size() = (1, batch_size, hidden_size)

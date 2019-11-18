@@ -4,14 +4,15 @@ python run_glue.py \
   --model_type bert \
   --model_name_or_path bert-base-cased \
   --task_name MRPC \
-  --optimizer SGD \
+  --optimizer Acclip \
   --do_train \
   --do_eval \
   --do_lower_case \
   --data_dir $GLUE_DIR/MRPC/ \
   --max_seq_length 128 \
   --per_gpu_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3.0 \
-  --output_dir /tmp/mrpc_output/ \
-  --overwrite_output_dir
+  --learning_rate 1e-2 \
+  --num_train_epochs 5.0 \
+  --evaluate_during_training \
+  --overwrite_output_dir \
+  --output_dir ./outputs

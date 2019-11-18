@@ -5,7 +5,7 @@ import math
 class ACClip(Optimizer):
 
     def __init__(self, params, lr=1e-4, betas=(0.9, 0.99), eps=1e-5,
-                 weight_decay=0, alpha = 2, mod=0):
+                 weight_decay=0, alpha = 1, mod=0):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
@@ -49,9 +49,6 @@ class ACClip(Optimizer):
 
                     # second-order momentum, i.e., v_t
                     state['second_moment'] = torch.zeros_like(p.data)
-
-
-
 
                 momentum, clip, second_moment = state['momentum'], state['clip'], state['second_moment']
 
