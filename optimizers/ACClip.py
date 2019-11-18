@@ -5,7 +5,7 @@ import math
 class ACClip(Optimizer):
 
     def __init__(self, params, lr=1e-4, betas=(0.9, 0.99), eps=1e-5,
-                 weight_decay=0, alpha = 2):
+                 weight_decay=0, alpha = 2, mod=0):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
@@ -18,7 +18,7 @@ class ACClip(Optimizer):
             raise ValueError("Invalid alpha parameter: {}".format(alpha))
 
         defaults = dict(lr=lr, betas=betas, eps=eps,
-                        weight_decay=weight_decay, alpha=alpha)
+                        weight_decay=weight_decay, alpha=alpha, mod=mod)
         super(ACClip, self).__init__(params, defaults)
 
     def __setstate__(self, state):
@@ -47,8 +47,13 @@ class ACClip(Optimizer):
                     # the clipping value, i.e., \tao_0^{\alpha}
                     state['clip'] = torch.zeros_like(p.data)
 
+                    # second-order momentum, i.e., v_t
+                    state['second_moment'] = torch.zeros_like(p.data)
 
-                momentum, clip = state['momentum'], state['clip']
+
+
+
+                momentum, clip, second_moment = state['momentum'], state['clip'], state['second_moment']
 
                 beta1, beta2 = group['betas']
 
@@ -60,11 +65,18 @@ class ACClip(Optimizer):
                 # update momentum and clip
                 momentum.mul_(beta1).add_(1-beta1, grad)
                 clip.mul_(beta2).add_(1 - beta2, grad.abs().pow(alpha))
+                second_moment.mul_(beta2).addcmul_(1-beta2, grad, grad)
 
                 # truncate large gradient
                 denom = clip.pow(1/alpha).div(momentum.abs().add(group['eps'])).clamp(min=0.0, max=1.0)
 
+                # calculate eta_t
+                if group['mod'] == 1:
+                    denom.div_(second_moment.mul(beta2).sqrt().add(group['eps']))
+
                 p.data.addcmul_(-group['lr'], denom, momentum)
+
+
 
         return loss
 
