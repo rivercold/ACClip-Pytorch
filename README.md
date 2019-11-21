@@ -3,9 +3,10 @@ The PyTorch implementation of ICLR2020 submission: Why ADAM Beats SGD for Attent
 
 
 ## Requirments
+Strongly recommend that you have a Anaconda enviroment. (https://www.anaconda.com/distribution/)
 * Python >= 3.6
-* PyTorch >= 1.0
-* torchtext >= 0.4.0
+* PyTorch >= 1.0  (https://pytorch.org/get-started/locally/)
+* torchtext >= 0.4.0 (conda install -c pytorch torchtext)  
 * numpy >= 1.16.4
 * matplotlib >= 3.1.0
 * transformers >= 2.1.1 (pip install transformers)
@@ -14,8 +15,9 @@ The PyTorch implementation of ICLR2020 submission: Why ADAM Beats SGD for Attent
 
 ### Text Classification
 ```shell script
-$ python run_text_classifier.py 
+$ python run_text_classifier.py --optimizer=acclip --lr=0.01 --epoch=20
 ```
+optmizers chosen from "acclip; adam; sgd"  
 
 ### GLUE task
 * Donwload the datasets

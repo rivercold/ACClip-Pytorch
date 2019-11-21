@@ -50,9 +50,6 @@ class ACClip(Optimizer):
                     # second-order momentum, i.e., v_t
                     state['second_moment'] = torch.zeros_like(p.data)
 
-
-
-
                 momentum, clip, second_moment = state['momentum'], state['clip'], state['second_moment']
 
                 beta1, beta2 = group['betas']
