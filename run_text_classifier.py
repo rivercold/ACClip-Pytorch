@@ -17,6 +17,8 @@ parser.add_argument('--momentum', type=float, default=0.9)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--hidden_size', type=int, default=256)
 parser.add_argument('--emb_dim', type=int, default=300)
+parser.add_argument('--alpha', type=float, default=1)
+parser.add_argument('--mod', type=int, default=1)
 args = parser.parse_args()
 
 def train(model, optimizer, train_batches, eval_batches, total_epoch, model_name):
@@ -84,7 +86,7 @@ if __name__ == "__main__":
     elif args.optimizer == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     elif args.optimizer == "acclip":
-        optimizer = ACClip(model.parameters(), lr=args.lr)
+        optimizer = ACClip(model.parameters(), lr=args.lr, alpha=args.alpha, mod=args.mod)
 
     print ("Start training models!")
     model_name = "{}-{}-{}".format(args.optimizer, args.dataset, args.model)
