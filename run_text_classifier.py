@@ -36,6 +36,16 @@ def train(model, optimizer, train_batches, eval_batches, total_epoch, model_name
             loss = F.cross_entropy(pred, target)
             total_loss += loss.item()
             loss.backward()
+            params = list(model.parameters())
+            for elem in params:
+                print(type(elem))
+                if elem.grad is None:
+                    continue
+                else:
+                    print(elem.grad)
+                    
+                
+            
             optimizer.step()
             step += 1
             if step % 100 == 0:

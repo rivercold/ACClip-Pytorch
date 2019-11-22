@@ -11,8 +11,8 @@ python run_glue.py \
   --data_dir $GLUE_DIR/MRPC/ \
   --max_seq_length 128 \
   --per_gpu_train_batch_size 32 \
-  --learning_rate 1e-2 \
+  --learning_rate 1e-3 \
   --num_train_epochs 5.0 \
   --evaluate_during_training \
   --overwrite_output_dir \
-  --output_dir ./outputs
+  --output_dir ./glue_outputs
