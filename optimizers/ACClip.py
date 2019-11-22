@@ -65,7 +65,7 @@ class ACClip(Optimizer):
                 # update momentum and clip
                 momentum.mul_(beta1).add_(1 - beta1, grad)
                 clip.mul_(beta2).add_(1 - beta2, grad.abs().pow(alpha))
-                second_moment.mul_(beta2).addcmul_(1-beta2, grad, grad)
+                second_moment.mul_(beta2).addcmul_(1-beta2, grad, grad).div_(bias_decay2)
 
                 # truncate large gradient
                 denom = clip.pow(1/alpha).div(momentum.abs().add(group['eps'])).clamp(min=0.0, max=1.0)
