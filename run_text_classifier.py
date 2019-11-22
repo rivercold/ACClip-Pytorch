@@ -78,16 +78,7 @@ def train(model, optimizer, train_batches, eval_batches, total_epoch, model_name
             pred = model(inputs)
             loss = F.cross_entropy(pred, target)
             total_loss += loss.item()
-            loss.backward()
-            params = list(model.parameters())
-            for elem in params:
-                print(type(elem))
-                if elem.grad is None:
-                    continue
-                else:
-                    print(elem.grad)
-                    
-                
+            loss.backward()        
             
             optimizer.step()
             step += 1
@@ -144,5 +135,5 @@ if __name__ == "__main__":
 
     print ("Start training models!")
     model_name = "{}-{}-{}".format(args.optimizer, args.dataset, args.model)
-    print_noise(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
+    train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
 
