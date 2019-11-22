@@ -6,7 +6,7 @@ from torchtext import datasets
 from torchtext.vocab import Vectors, GloVe
 
 
-def load_dataset(batch_size=32, word_dim=300):
+def load_dataset(dataset="imdb", batch_size=32, word_dim=300):
     """
     tokenizer : Breaks sentences into a list of words. If sequential=False, no tokenization is applied
     Field : A class that stores information about the way of preprocessing
@@ -25,7 +25,11 @@ def load_dataset(batch_size=32, word_dim=300):
     TEXT = data.Field(sequential=True, tokenize=tokenize, lower=True, include_lengths=False, batch_first=True,
                       fix_length=200)
     LABEL = data.LabelField(sequential=False)
-    train_data, test_data = datasets.IMDB.splits(TEXT, LABEL)
+    if dataset == "imdb":
+        train_data, test_data = datasets.IMDB.splits(TEXT, LABEL)
+    elif dataset == "sst":
+        train_data, dev_data, test_data = datasets.SST.splits(TEXT, LABEL,
+                                           fine_grained=False)
     print ("after split, we start to build vocab")
     TEXT.build_vocab(train_data, vectors=GloVe(name='6B', dim=word_dim), min_freq=10)
     LABEL.build_vocab(train_data)

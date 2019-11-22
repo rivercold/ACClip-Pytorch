@@ -17,9 +17,52 @@ parser.add_argument('--momentum', type=float, default=0.9)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--hidden_size', type=int, default=256)
 parser.add_argument('--emb_dim', type=int, default=300)
-parser.add_argument('--alpha', type=float, default=1)
-parser.add_argument('--mod', type=int, default=1)
 args = parser.parse_args()
+
+def print_noise(model, optimizer, train_batches, eval_batches, total_epoch, model_name):
+    step = 0
+    model.train()
+    train_loss, test_loss, test_acc = [], [], []
+    for epoch in range(total_epoch):
+        total_loss = 0.0
+        local_step = 0
+        for batch in train_batches:
+            optimizer.zero_grad()
+            inputs, target = batch.text, batch.label
+            if torch.cuda.is_available():
+                inputs, target = inputs.cuda(), target.cuda()
+            pred = model(inputs)
+            loss = F.cross_entropy(pred, target)
+            total_loss += loss.item()
+            loss.backward()
+            params = list(model.parameters())
+            '''
+            print ("params", len(params), params)
+            for i, p in enumerate(params):
+                if p.grad is None:
+                    print (i, "fail")
+                    continue
+                print (i, "type p", type(p))
+                grad = p.grad.data
+                print ("grad", type(grad), grad.size())
+            '''
+            # lets focus on the params[0]
+            emb_grad = params[0].grad.data
+            if local_step == 0:
+                all_grad = emb_grad.unsqueeze(0)
+            else:
+                all_grad = torch.cat((emb_grad.unsqueeze(0),all_grad), dim=0)
+                print ("all_grad", all_grad.size())
+            step += 1
+            local_step += 1
+        grad_f = torch.mean(all_grad, dim=0)
+        print ("gradient of f", grad_f.size())
+        diff = (all_grad - grad_f).view(all_grad.size(0), -1)  # batch_size x num_para
+        l2_norm = torch.norm(diff, p=2, dim=1)
+        print (l2_norm.size(), l2_norm.cpu().tolist(), "embedding norm l2")
+
+        # optimizer.step()
+
 
 def train(model, optimizer, train_batches, eval_batches, total_epoch, model_name):
     step = 0
@@ -84,7 +127,8 @@ def eval(model, eval_batches):
 
 if __name__ == "__main__":
     print ("Start loading and processing dataset")
-    train_batches, dev_batches, test_batches, class_num, vocab_size, word_embeds = load_dataset(word_dim=args.emb_dim)
+    train_batches, dev_batches, test_batches, class_num, vocab_size, word_embeds \
+        = load_dataset(dataset=args.dataset, batch_size=args.batch_size, word_dim=args.emb_dim)
 
     if args.model == "lstm":
         model = LSTM_Attn(args.batch_size, class_num, args.hidden_size, vocab_size, args.emb_dim, word_embeds)
@@ -96,9 +140,9 @@ if __name__ == "__main__":
     elif args.optimizer == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     elif args.optimizer == "acclip":
-        optimizer = ACClip(model.parameters(), lr=args.lr, alpha=args.alpha, mod=args.mod)
+        optimizer = ACClip(model.parameters(), lr=args.lr)
 
     print ("Start training models!")
     model_name = "{}-{}-{}".format(args.optimizer, args.dataset, args.model)
-    train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
+    print_noise(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
 
