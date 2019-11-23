@@ -4,7 +4,7 @@ python run_glue.py \
   --model_type bert \
   --model_name_or_path bert-base-cased \
   --task_name MRPC \
-  --optimizer Acclip \
+  --optimizer sgd \
   --do_train \
   --do_eval \
   --do_lower_case \

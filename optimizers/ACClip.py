@@ -5,7 +5,7 @@ import math
 class ACClip(Optimizer):
 
     def __init__(self, params, lr=1e-4, betas=(0.9, 0.99), eps=1e-5,
-                 weight_decay=0, alpha=1, mod=1):
+                 weight_decay=0, alpha=2, mod=0):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
@@ -65,16 +65,19 @@ class ACClip(Optimizer):
                 # update momentum and clip
                 momentum.mul_(beta1).add_(1 - beta1, grad)
                 clip.mul_(beta2).add_(1 - beta2, grad.abs().pow(alpha))
-                second_moment.mul_(beta2).addcmul_(1-beta2, grad, grad).div_(bias_decay2)
+                second_moment.mul_(beta2).addcmul_(1-beta2, grad, grad)
 
                 # truncate large gradient
                 denom = clip.pow(1/alpha).div(momentum.abs().add(group['eps'])).clamp(min=0.0, max=1.0)
 
                 # calculate eta_t
                 if group['mod'] == 1:
-                    denom.div_((second_moment.mul(beta2).sqrt()).add(group['eps']))
-                step_size = group['lr']/bias_decay1
+                    #denom = torch.ones_like(p.data)
+                    denom.div_((second_moment.sqrt()).add(group['eps']))
+                #print('momentum:')
+                #print(momentum)
+                #print('clipped momentum:')
+                #print(momentum.mul(denom))
+                step_size = group['lr']
                 p.data.addcmul_(-step_size, denom, momentum)
-
         return loss
-

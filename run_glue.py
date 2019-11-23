@@ -167,8 +167,8 @@ def train(args, train_dataset, model, tokenizer):
 
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
-                if args.optimizer.lower() != "acclip":   # make sure we don't clip for acclip
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)  #
+                #if args.optimizer.lower() != "acclip":   # make sure we don't clip for acclip
+                    #torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)  #
                 optimizer.step()
                 scheduler.step()  # Update learning rate schedule
                 model.zero_grad()

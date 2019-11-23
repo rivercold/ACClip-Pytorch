@@ -134,5 +134,5 @@ if __name__ == "__main__":
 
     print ("Start training models!")
     model_name = "{}-{}-{}".format(args.optimizer, args.dataset, args.model)
-    print_noise(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
+    train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
 
