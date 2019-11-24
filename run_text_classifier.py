@@ -7,6 +7,7 @@ import sys, os, pickle
 from optimizers.ACClip import ACClip
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--mode', type=str, default='train', help='mode=train or mode=plot')
 parser.add_argument('--model', type=str, default='lstm', help='name of the model')
 parser.add_argument('--checkpoint', type=str, default='', help='load existing checkpoint')
 parser.add_argument('--dataset', type=str, default='imdb', help='the dataset used for text classification')
@@ -33,7 +34,7 @@ def print_noise(model, optimizer, train_batches, eval_batches, total_epoch, mode
             local_step = 0
             total_loss = 0.0
             for batch in train_batches:
-                if(local_step%10==0):print(local_step)
+                #if(local_step%100==0):print(local_step)
                 optimizer.zero_grad()
                 inputs, target = batch.text, batch.label
                 if torch.cuda.is_available():
@@ -68,15 +69,18 @@ def print_noise(model, optimizer, train_batches, eval_batches, total_epoch, mode
                         l2_norm=torch.norm(diff, p=2)
                         #print(noise_sample,l2_norm)
                         noise_sample.append(l2_norm.item())
+                    print(emb_grad.size())
                 if(i==2):
                     optimizer.step()
                     step += 1
                 local_step += 1
             if(i==0):
                 avg_grad/=local_step
-                print(avg_grad)
+                #print(avg_grad)
         diction[epoch] = noise_sample
-    
+        eval_loss, eval_acc = eval(model, eval_batches)
+        print ("validation loss {:.4f} and acc {:.4f}".format(eval_loss, eval_acc))
+
         if not os.path.exists("./noises"):
             os.mkdir("./noises")
         with open(os.path.join('./noises', model_name+'_noise'), "wb") as f:
@@ -108,8 +112,7 @@ def train(model, optimizer, train_batches, eval_batches, total_epoch, model_name
             pred = model(inputs)
             loss = F.cross_entropy(pred, target)
             total_loss += loss.item()
-            loss.backward()        
-            
+            loss.backward()
             optimizer.step()
             step += 1
             if step % 100 == 0:
@@ -165,5 +168,7 @@ if __name__ == "__main__":
 
     print ("Start training models!")
     model_name = "{}-{}-{}".format(args.optimizer, args.dataset, args.model)
-    train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
+    if(args.mode == 'plot'): print_noise(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
+    else : train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
+
 

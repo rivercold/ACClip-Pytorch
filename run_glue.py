@@ -222,6 +222,150 @@ def train(args, train_dataset, model, tokenizer):
     return global_step, tr_loss / global_step
 
 
+def Plot(args, train_dataset, model, tokenizer):
+    """ Train the model + Plot the noise"""
+    #train_loss, test_loss, test_f1, test_acc = [], [], [], []
+    model_name = "{}-{}-{}".format(args.optimizer.lower(), args.task_name, args.model_type)
+    #if args.local_rank in [-1, 0]:
+    #    tb_writer = SummaryWriter()
+
+    args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
+    train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+
+    if args.max_steps > 0:
+        t_total = args.max_steps
+        args.num_train_epochs = args.max_steps // (len(train_dataloader) // args.gradient_accumulation_steps) + 1
+    else:
+        t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
+
+    # Prepare optimizer and schedule (linear warmup and decay)
+    no_decay = ['bias', 'LayerNorm.weight']
+    optimizer_grouped_parameters = [
+        {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+         'weight_decay': args.weight_decay},
+        {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+    ]
+    if args.optimizer.lower() == "adamw":
+        print ("We use AdamW optimizer!")
+        optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
+    elif args.optimizer.lower() == "adam":
+        print("We use Adam optimizer!")
+        optimizer = Adam(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
+    elif args.optimizer.lower() == "sgd":
+        print("We use SGD optimizer!")
+        optimizer = SGD(optimizer_grouped_parameters, lr=args.learning_rate, momentum=0.9)
+    elif args.optimizer.lower() == "acclip":
+        print ("We use ACClip optimizer!")
+        optimizer = ACClip(optimizer_grouped_parameters, lr=args.learning_rate)
+    scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
+
+    # multi-gpu training (should be after apex fp16 initialization)
+    if args.n_gpu > 1:
+        model = torch.nn.DataParallel(model)
+
+    # Distributed training (should be after apex fp16 initialization)
+    if args.local_rank != -1:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank],
+                                                          output_device=args.local_rank,
+                                                          find_unused_parameters=True)
+    # Train!
+    logger.info("***** Running training *****")
+    logger.info("  Num examples = %d", len(train_dataset))
+    logger.info("  Num Epochs = %d", args.num_train_epochs)
+    logger.info("  Instantaneous batch size per GPU = %d", args.per_gpu_train_batch_size)
+    logger.info("  Total train batch size (w. parallel, distributed & accumulation) = %d",
+                args.train_batch_size * args.gradient_accumulation_steps * (
+                    torch.distributed.get_world_size() if args.local_rank != -1 else 1))
+    logger.info("  Gradient Accumulation steps = %d", args.gradient_accumulation_steps)
+    logger.info("  Total optimization steps = %d", t_total)
+
+    global_step = 0
+    tr_loss, logging_loss = 0.0, 0.0
+    model.zero_grad()
+    train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
+    set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
+    
+    epoch_num=0
+    diction={}
+    
+    for _ in train_iterator:
+        epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
+        #i = 0 --> calculate average gradient
+        #i = 1 --> calculate noises
+        #i = 2 --> optimizer.step()
+        avg_grad = None
+        noise_sample=list()
+        for i in range(3):
+            num = 0
+            for step, batch in enumerate(epoch_iterator):
+                model.train()
+                batch = tuple(t.to(args.device) for t in batch)
+                inputs = {'input_ids': batch[0],
+                          'attention_mask': batch[1],
+                          'labels': batch[3]}
+                if args.model_type != 'distilbert':
+                    inputs['token_type_ids'] = batch[2] if args.model_type in ['bert',
+                                                                               'xlnet'] else None  # XLM, DistilBERT and RoBERTa don't use segment_ids
+                outputs = model(**inputs)
+                loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
+
+                if args.n_gpu > 1:
+                    loss = loss.mean()  # mean() to average on multi-gpu parallel training
+                if args.gradient_accumulation_steps > 1:
+                    loss = loss / args.gradient_accumulation_steps
+
+                loss.backward()
+
+                tr_loss += loss.item()
+                if (step + 1) % args.gradient_accumulation_steps == 0:
+                    #if args.optimizer.lower() != "acclip":   # make sure we don't clip for acclip
+                    #    torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)  #
+                    if(i<=1):
+                        emb_grad = None
+                        for j in model.parameters():
+                            if(emb_grad is None): emb_grad=j.grad.data.view(-1)
+                            else: emb_grad=torch.cat((emb_grad, j.grad.data.view(-1) ))
+                        if(i==0):
+                            if(avg_grad is None): avg_grad=emb_grad
+                            else: avg_grad+=emb_grad
+                            num += 1
+                        if(i==1):
+                            diff=emb_grad-avg_grad
+                            l2_norm=torch.norm(diff, p=2)
+                            noise_sample.append(l2_norm.item())
+                    if(i==2):
+                        optimizer.step()
+                        scheduler.step()  # Update learning rate schedule
+                        global_step += 1
+                        if args.local_rank in [-1, 0] and args.logging_steps > 0 and global_step % args.logging_steps == 0:
+                        # Log metrics
+                            if args.local_rank == -1 and args.evaluate_during_training:  # Only evaluate when single GPU otherwise metrics may not average well
+                                results, eval_loss = evaluate(args, model, tokenizer)
+                                for key, value in results.items():
+                                    print ('eval_{}'.format(key), value, global_step)
+                                print ('eval_loss', eval_loss, global_step)
+                    model.zero_grad()
+                    
+                if args.max_steps > 0 and global_step > args.max_steps:
+                    epoch_iterator.close()
+                    break
+            if(i==0):
+                avg_grad/=num
+            if(i==1):
+                diction[epoch_num]=noise_sample
+                epoch_num+=1
+                
+            if args.max_steps > 0 and global_step > args.max_steps:
+                train_iterator.close()
+                break
+        if not os.path.exists("./noises"):
+            os.mkdir("./noises")
+        with open(os.path.join('./noises', model_name+'_noise'), "wb") as f:
+            pickle.dump(diction, f)
+
+    return global_step, tr_loss / global_step
+
 def evaluate(args, model, tokenizer, prefix=""):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_task_names = ("mnli", "mnli-mm") if args.task_name == "mnli" else (args.task_name,)
@@ -371,6 +515,8 @@ def main():
                              "than this will be truncated, sequences shorter will be padded.")
     parser.add_argument("--do_train", action='store_true',
                         help="Whether to run training.")
+    parser.add_argument("--do_plot", action='store_true',
+                        help="Whether to run plot.")
     parser.add_argument("--do_eval", action='store_true',
                         help="Whether to run eval on the dev set.")
     parser.add_argument("--evaluate_during_training", action='store_true',
@@ -398,7 +544,7 @@ def main():
                         help="If > 0: set total number of training steps to perform. Override num_train_epochs.")
     parser.add_argument("--warmup_steps", default=0, type=int,
                         help="Linear warmup over warmup_steps.")
-    parser.add_argument('--logging_steps', type=int, default=10,
+    parser.add_argument('--logging_steps', type=int, default=50,
                         help="Log every X updates steps.")
     parser.add_argument('--save_steps', type=int, default=100,
                         help="Save checkpoint every X updates steps.")
@@ -477,12 +623,18 @@ def main():
 
     logger.info("Training/evaluation parameters %s", args)
 
+    # Plotting
+    if args.do_plot:
+        train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
+        global_step, tr_loss = Plot(args, train_dataset, model, tokenizer)
+        logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
+    
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
-
+        
     # Saving best-practices: if you use defaults names for the model, you can reload it using from_pretrained()
     if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
         # Create output directory if needed
