@@ -21,6 +21,11 @@ $ python run_text_classifier.py --optimizer=acclip --lr=0.001 --epoch=30
 ```
 optmizers chosen from `acclip`, `adam` and `sgd`.  
 
+##### Plot Noise 
+```shell script
+$ python run_text_classifier.py --optimizer=sgd --lr=0.1 --epoch=30 --mode=plot
+```
+
 #### SST
 ```shell script
 $ python run_text_classifier.py --optimizer=acclip --lr=0.01 --epoch=20 --dataset=sst
