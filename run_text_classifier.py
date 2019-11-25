@@ -23,45 +23,75 @@ def print_noise(model, optimizer, train_batches, eval_batches, total_epoch, mode
     step = 0
     model.train()
     train_loss, test_loss, test_acc = [], [], []
+    diction = {} 
     for epoch in range(total_epoch):
-        total_loss = 0.0
-        local_step = 0
-        for batch in train_batches:
-            optimizer.zero_grad()
-            inputs, target = batch.text, batch.label
-            if torch.cuda.is_available():
-                inputs, target = inputs.cuda(), target.cuda()
-            pred = model(inputs)
-            loss = F.cross_entropy(pred, target)
-            total_loss += loss.item()
-            loss.backward()
-            params = list(model.parameters())
-            '''
-            print ("params", len(params), params)
-            for i, p in enumerate(params):
-                if p.grad is None:
-                    print (i, "fail")
-                    continue
-                print (i, "type p", type(p))
-                grad = p.grad.data
-                print ("grad", type(grad), grad.size())
-            '''
-            # lets focus on the params[0]
-            emb_grad = params[0].grad.data
-            if local_step == 0:
-                all_grad = emb_grad.unsqueeze(0)
-            else:
-                all_grad = torch.cat((emb_grad.unsqueeze(0),all_grad), dim=0)
-                print ("all_grad", all_grad.size())
-            step += 1
-            local_step += 1
+        # i = 0 -- calc average gradient
+        # i = 1 -- calc noise
+        # i = 2 -- update
+        noise_sample=list()
+        for i in range(3):
+            local_step = 0
+            total_loss = 0.0
+            for batch in train_batches:
+                if(local_step%10==0):print(local_step)
+                optimizer.zero_grad()
+                inputs, target = batch.text, batch.label
+                if torch.cuda.is_available():
+                    inputs, target = inputs.cuda(), target.cuda()
+                pred = model(inputs)
+                loss = F.cross_entropy(pred, target)
+                total_loss += loss.item()
+                loss.backward()
+                params = list(model.parameters())
+                '''
+                print ("params", len(params), params)
+                for i, p in enumerate(params):
+                    if p.grad is None:
+                        print (i, "fail")
+                        continue
+                    print (i, "type p", type(p))
+                    grad = p.grad.data
+                    print ("grad", type(grad), grad.size())
+                '''
+                # lets focus on the params[0]
+                if(i<=1):
+                    emb_grad = params[0].grad.data.view(-1)
+                    for j in range(2,8):
+                        emb_grad=torch.cat((emb_grad, params[j].grad.data.view(-1) ))
+                    # the 0 th round -- calc average gradient
+                    if(i==0):
+                        if(local_step==0):avg_grad=emb_grad
+                        else:avg_grad+=emb_grad
+                    # the 1 th round -- output noise
+                    if(i==1):
+                        diff=emb_grad-avg_grad
+                        l2_norm=torch.norm(diff, p=2)
+                        #print(noise_sample,l2_norm)
+                        noise_sample.append(l2_norm.item())
+                if(i==2):
+                    optimizer.step()
+                    step += 1
+                local_step += 1
+            if(i==0):
+                avg_grad/=local_step
+                print(avg_grad)
+        diction[epoch] = noise_sample
+    
+        if not os.path.exists("./noises"):
+            os.mkdir("./noises")
+        with open(os.path.join('./noises', model_name+'_noise'), "wb") as f:
+            pickle.dump(diction, f)
+            
+            
+                
+        '''
         grad_f = torch.mean(all_grad, dim=0)
         print ("gradient of f", grad_f.size())
         diff = (all_grad - grad_f).view(all_grad.size(0), -1)  # batch_size x num_para
         l2_norm = torch.norm(diff, p=2, dim=1)
         print (l2_norm.size(), l2_norm.cpu().tolist(), "embedding norm l2")
         # optimizer.step()
-
+        '''
 
 def train(model, optimizer, train_batches, eval_batches, total_epoch, model_name):
     step = 0
