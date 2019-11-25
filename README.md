@@ -14,11 +14,14 @@ Strongly recommend that you have a Anaconda enviroment. (https://www.anaconda.co
 ## Setup
 
 ### Text Classification
+
+#### IMDB
 ```shell script
 $ python run_text_classifier.py --optimizer=acclip --lr=0.001 --epoch=30
 ```
 optmizers chosen from `acclip`, `adam` and `sgd`.  
-Run on the SST dataset  
+
+#### SST
 ```shell script
 $ python run_text_classifier.py --optimizer=acclip --lr=0.01 --epoch=20 --dataset=sst
 ```
