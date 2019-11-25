@@ -1,6 +1,7 @@
 # ACClip-Pytorch
-The PyTorch implementation of ICLR2020 submission: Why ADAM Beats SGD for Attention Models (https://openreview.net/pdf?id=SJx37TEtDH)
+The PyTorch implementation of ICLR2020 submission: Why ADAM Beats SGD for Attention Models (https://openreview.net/pdf?id=SJx37TEtDH)  
 
+Github Repo: https://github.com/rivercold/ACClip-Pytorch  
 
 ## Requirments
 Strongly recommend that you have a Anaconda enviroment. (https://www.anaconda.com/distribution/)
