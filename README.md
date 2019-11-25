@@ -15,9 +15,13 @@ Strongly recommend that you have a Anaconda enviroment. (https://www.anaconda.co
 
 ### Text Classification
 ```shell script
-$ python run_text_classifier.py --optimizer=acclip --lr=0.01 --epoch=20
+$ python run_text_classifier.py --optimizer=acclip --lr=0.001 --epoch=30
 ```
-optmizers chosen from "acclip; adam; sgd"  
+optmizers chosen from `acclip`, `adam` and `sgd`.  
+Run on the SST dataset  
+```shell script
+$ python run_text_classifier.py --optimizer=acclip --lr=0.01 --epoch=20 --dataset=sst
+```
 
 ### GLUE task
 * Donwload the datasets
@@ -25,7 +29,7 @@ optmizers chosen from "acclip; adam; sgd"
 $ python download_mrpc_data.py
 ```
 
-* Run Bert model, where you can specify your optimizers in ```run_mrpc.sh```  
+* Run Bert model, where you can specify your optimizers and learning rates in ```run_mrpc.sh```  
 ```shell script
 $ sh ./run_mrpc.sh
 ```
