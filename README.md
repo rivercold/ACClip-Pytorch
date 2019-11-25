@@ -22,18 +22,14 @@ optmizers chosen from "acclip; adam; sgd"
 ### GLUE task
 * Donwload the datasets
 ```shell script
-$ python download_glue_data.py
+$ python download_mrpc_data.py
 ```
 
-* Run Bert model, where you can specify your optimizers in ```run_glue.sh```  
+* Run Bert model, where you can specify your optimizers in ```run_mrpc.sh```  
 ```shell script
-$ sh ./run_glue.sh
+$ sh ./run_mrpc.sh
 ```
 
 ## Plot for visualization
-
+For training, the evaluation results will be written to the `curves` folder. 
 Install Jupyter notebook to run ```plot.ipynb```.
-
-## TODO List
-
-Check here for implementing ACClip for Transformers: https://github.com/huggingface/transformers/blob/master/transformers/optimization.py
