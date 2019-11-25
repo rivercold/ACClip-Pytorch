@@ -54,7 +54,5 @@ switch `do_train` with `do_plot` in `./run_mrpc.sh`
 For training, the evaluation results will be written to the `curves` folder.   
 Install Jupyter notebook to run ```plot.ipynb```.  
 
-Open and Check
-
 For plotting noise norm, the evaluation results will be written to `noises` folder.   
 Run ```noise_plot.ipynb```
