@@ -11,6 +11,11 @@ Strongly recommend that you have a Anaconda enviroment. (https://www.anaconda.co
 * matplotlib >= 3.1.0
 * transformers >= 2.1.1 (pip install transformers)
 
+## Core Implementaions
+`ACClip` optimizer:  https://github.com/rivercold/ACClip-Pytorch/blob/master/optimizers/ACClip.py  
+`print_noise` function for LSTM: https://github.com/rivercold/ACClip-Pytorch/blob/master/run_text_classifier.py#L22
+`print_noise` function for BERT: https://github.com/rivercold/ACClip-Pytorch/blob/master/run_mrpc.py#L224
+
 ## Setup
 
 ### Text Classification
@@ -28,7 +33,7 @@ $ python run_text_classifier.py --optimizer=sgd --lr=0.1 --epoch=30 --mode=plot
 
 #### SST
 ```shell script
-$ python run_text_classifier.py --optimizer=acclip --lr=0.01 --epoch=20 --dataset=sst
+$ python run_text_classifier.py --optimizer=acclip --lr=0.001 --epoch=20 --dataset=sst
 ```
 
 ### GLUE task
@@ -43,5 +48,8 @@ $ sh ./run_mrpc.sh
 ```
 
 ## Plot for visualization
-For training, the evaluation results will be written to the `curves` folder. 
-Install Jupyter notebook to run ```plot.ipynb```.
+For training, the evaluation results will be written to the `curves` folder.   
+Install Jupyter notebook to run ```plot.ipynb```.  
+
+For plotting noise norm, the evaluation results will be written to `noises` folder. 
+Run ```
