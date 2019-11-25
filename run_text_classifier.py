@@ -7,6 +7,7 @@ import sys, os, pickle
 from optimizers.ACClip import ACClip
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--mode', type=str, default='train', help='mode=train or mode=plot')
 parser.add_argument('--model', type=str, default='lstm', help='name of the model')
 parser.add_argument('--checkpoint', type=str, default='', help='load existing checkpoint')
 parser.add_argument('--dataset', type=str, default='imdb', help='the dataset used for text classification')
@@ -19,21 +20,21 @@ parser.add_argument('--hidden_size', type=int, default=256)
 parser.add_argument('--emb_dim', type=int, default=300)
 args = parser.parse_args()
 
+
 def print_noise(model, optimizer, train_batches, eval_batches, total_epoch, model_name):
     step = 0
     model.train()
     train_loss, test_loss, test_acc = [], [], []
-    diction = {} 
+    diction = {}
     for epoch in range(total_epoch):
         # i = 0 -- calc average gradient
         # i = 1 -- calc noise
         # i = 2 -- update
-        noise_sample=list()
+        noise_sample = list()
         for i in range(3):
             local_step = 0
             total_loss = 0.0
             for batch in train_batches:
-                if(local_step%10==0):print(local_step)
                 optimizer.zero_grad()
                 inputs, target = batch.text, batch.label
                 if torch.cuda.is_available():
@@ -43,55 +44,37 @@ def print_noise(model, optimizer, train_batches, eval_batches, total_epoch, mode
                 total_loss += loss.item()
                 loss.backward()
                 params = list(model.parameters())
-                '''
-                print ("params", len(params), params)
-                for i, p in enumerate(params):
-                    if p.grad is None:
-                        print (i, "fail")
-                        continue
-                    print (i, "type p", type(p))
-                    grad = p.grad.data
-                    print ("grad", type(grad), grad.size())
-                '''
-                # lets focus on the params[0]
-                if(i<=1):
+                if (i <= 1):
                     emb_grad = params[0].grad.data.view(-1)
-                    for j in range(2,8):
-                        emb_grad=torch.cat((emb_grad, params[j].grad.data.view(-1) ))
+                    for j in range(2, 8):  # params[1] is none and we need to skip
+                        emb_grad = torch.cat((emb_grad, params[j].grad.data.view(-1)))
                     # the 0 th round -- calc average gradient
-                    if(i==0):
-                        if(local_step==0):avg_grad=emb_grad
-                        else:avg_grad+=emb_grad
+                    if (i == 0):
+                        if (local_step == 0):
+                            avg_grad = emb_grad
+                        else:
+                            avg_grad += emb_grad
                     # the 1 th round -- output noise
-                    if(i==1):
-                        diff=emb_grad-avg_grad
-                        l2_norm=torch.norm(diff, p=2)
-                        #print(noise_sample,l2_norm)
+                    if (i == 1):
+                        diff = emb_grad - avg_grad
+                        l2_norm = torch.norm(diff, p=2)
+                        # print(noise_sample,l2_norm)
                         noise_sample.append(l2_norm.item())
-                if(i==2):
+                    # print(emb_grad.size())
+                if (i == 2):
                     optimizer.step()
                     step += 1
                 local_step += 1
-            if(i==0):
-                avg_grad/=local_step
-                print(avg_grad)
+            if (i == 0):
+                avg_grad /= local_step
         diction[epoch] = noise_sample
-    
+        eval_loss, eval_acc = eval(model, eval_batches)
+        print ("validation loss {:.4f} and acc {:.4f}".format(eval_loss, eval_acc))
+
         if not os.path.exists("./noises"):
             os.mkdir("./noises")
-        with open(os.path.join('./noises', model_name+'_noise'), "wb") as f:
+        with open(os.path.join('./noises', model_name + '_noise'), "wb") as f:
             pickle.dump(diction, f)
-            
-            
-                
-        '''
-        grad_f = torch.mean(all_grad, dim=0)
-        print ("gradient of f", grad_f.size())
-        diff = (all_grad - grad_f).view(all_grad.size(0), -1)  # batch_size x num_para
-        l2_norm = torch.norm(diff, p=2, dim=1)
-        print (l2_norm.size(), l2_norm.cpu().tolist(), "embedding norm l2")
-        # optimizer.step()
-        '''
 
 def train(model, optimizer, train_batches, eval_batches, total_epoch, model_name):
     step = 0
@@ -159,8 +142,12 @@ if __name__ == "__main__":
     elif args.optimizer == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     elif "acclip" in args.optimizer.lower():
-        optimizer = ACClip(model.parameters(), lr=args.lr)
+        optimizer = ACClip(model.parameters(), lr=args.lr, weight_decay=0)
 
-    print ("Start training models!")
     model_name = "{}-{}-{}".format(args.optimizer, args.dataset, args.model)
-    train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
+    if args.mode.lower() == 'plot':
+        print ("Start Plotting Noise Norm!")
+        print_noise(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
+    else:
+        print ("Start training models!")
+        train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
