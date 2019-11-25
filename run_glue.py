@@ -114,7 +114,7 @@ def train(args, train_dataset, model, tokenizer):
     elif args.optimizer.lower() == "sgd":
         print("We use SGD optimizer!")
         optimizer = SGD(optimizer_grouped_parameters, lr=args.learning_rate, momentum=0.9)
-    elif args.optimizer.lower() == "acclip":
+    elif "acclip" in args.optimizer.lower():
         print ("We use ACClip optimizer!")
         optimizer = ACClip(optimizer_grouped_parameters, lr=args.learning_rate)
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)

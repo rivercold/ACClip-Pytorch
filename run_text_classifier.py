@@ -60,7 +60,6 @@ def print_noise(model, optimizer, train_batches, eval_batches, total_epoch, mode
         diff = (all_grad - grad_f).view(all_grad.size(0), -1)  # batch_size x num_para
         l2_norm = torch.norm(diff, p=2, dim=1)
         print (l2_norm.size(), l2_norm.cpu().tolist(), "embedding norm l2")
-
         # optimizer.step()
 
 
@@ -125,14 +124,13 @@ if __name__ == "__main__":
         if torch.cuda.is_available():
             model.cuda()
 
-    if args.optimizer == "sgd":
+    if "sgd" in args.optimizer.lower():
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     elif args.optimizer == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    elif args.optimizer == "acclip":
+    elif "acclip" in args.optimizer.lower():
         optimizer = ACClip(model.parameters(), lr=args.lr)
 
     print ("Start training models!")
     model_name = "{}-{}-{}".format(args.optimizer, args.dataset, args.model)
-    print_noise(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
-
+    train(model, optimizer, train_batches, dev_batches, args.epoch, model_name)
