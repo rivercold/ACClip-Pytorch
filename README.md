@@ -14,26 +14,34 @@ Strongly recommend that you have a Anaconda enviroment. (https://www.anaconda.co
 ## Setup
 
 ### Text Classification
+
+#### IMDB
 ```shell script
-$ python run_text_classifier.py --optimizer=acclip --lr=0.01 --epoch=20
+$ python run_text_classifier.py --optimizer=acclip --lr=0.001 --epoch=30
 ```
-optmizers chosen from "acclip; adam; sgd"  
+optmizers chosen from `acclip`, `adam` and `sgd`.  
+
+##### Plot Noise 
+```shell script
+$ python run_text_classifier.py --optimizer=sgd --lr=0.1 --epoch=30 --mode=plot
+```
+
+#### SST
+```shell script
+$ python run_text_classifier.py --optimizer=acclip --lr=0.01 --epoch=20 --dataset=sst
+```
 
 ### GLUE task
 * Donwload the datasets
 ```shell script
-$ python download_glue_data.py
+$ python download_mrpc_data.py
 ```
 
-* Run Bert model, where you can specify your optimizers in ```run_glue.sh```  
+* Run Bert model, where you can specify your optimizers and learning rates in ```run_mrpc.sh```  
 ```shell script
-$ sh ./run_glue.sh
+$ sh ./run_mrpc.sh
 ```
 
 ## Plot for visualization
-
+For training, the evaluation results will be written to the `curves` folder. 
 Install Jupyter notebook to run ```plot.ipynb```.
-
-## TODO List
-
-Check here for implementing ACClip for Transformers: https://github.com/huggingface/transformers/blob/master/transformers/optimization.py
